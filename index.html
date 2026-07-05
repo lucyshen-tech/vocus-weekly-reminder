@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vocus 媒合週報提醒 — CL 設定指南</title>
+<style>
+  :root {
+    --brand: #1d9bf0;
+    --brand-dark: #1478bd;
+    --ink: #24292f;
+    --muted: #6b7280;
+    --bg: #f6f8fa;
+    --card: #ffffff;
+    --border: #e5e7eb;
+    --code-bg: #0d1117;
+    --code-ink: #e6edf3;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Microsoft JhengHei", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.7;
+  }
+  header {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 3rem 1.5rem 2.5rem;
+    text-align: center;
+  }
+  header h1 { margin: 0 0 0.5rem; font-size: 1.9rem; }
+  header p { margin: 0; opacity: 0.9; }
+  main { max-width: 860px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+  section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem 1.75rem;
+    margin-top: 1.5rem;
+  }
+  h2 { font-size: 1.3rem; margin: 0 0 0.75rem; }
+  h2 .num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 1.7em; height: 1.7em; margin-right: 0.5em;
+    background: var(--brand); color: white; border-radius: 50%;
+    font-size: 0.85em;
+  }
+  table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; font-size: 0.92rem; }
+  th, td { border: 1px solid var(--border); padding: 0.5rem 0.7rem; text-align: left; }
+  th { background: var(--bg); }
+  .field { margin: 0.9rem 0; }
+  .field label { display: block; font-weight: 600; margin-bottom: 0.3rem; }
+  .field .hint { font-weight: 400; color: var(--muted); font-size: 0.88rem; }
+  .field input {
+    width: 100%; padding: 0.6rem 0.8rem; font-size: 1rem;
+    border: 1px solid var(--border); border-radius: 8px;
+  }
+  .field input:focus { outline: 2px solid var(--brand); border-color: transparent; }
+  .prompt-wrap { position: relative; margin-top: 1rem; }
+  .prompt-box {
+    background: var(--code-bg); color: var(--code-ink);
+    border-radius: 10px; padding: 1.25rem 1rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.8rem; line-height: 1.55;
+    white-space: pre-wrap; word-break: break-all;
+    max-height: 420px; overflow-y: auto;
+  }
+  .copy-btn {
+    position: sticky; float: right; top: 0.5rem; margin: 0.5rem;
+    background: var(--brand); color: white; border: none;
+    padding: 0.55rem 1.1rem; border-radius: 8px;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+  }
+  .copy-btn:hover { background: var(--brand-dark); }
+  .copy-btn.done { background: #16a34a; }
+  .warn {
+    background: #fff8e6; border: 1px solid #f5d97e;
+    border-radius: 8px; padding: 0.8rem 1rem; font-size: 0.92rem;
+  }
+  .ok-pill {
+    display: inline-block; background: #e7f7ee; color: #16794c;
+    border-radius: 999px; padding: 0.1rem 0.7rem; font-size: 0.85rem;
+    margin-left: 0.4rem;
+  }
+  footer { text-align: center; color: var(--muted); font-size: 0.85rem; padding: 2rem 1rem; }
+  footer a { color: var(--brand); }
+  code.inline {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 5px; padding: 0.1em 0.4em;
+    font-size: 0.88em; font-family: ui-monospace, Menlo, monospace;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📊 vocus 媒合週報提醒</h1>
+  <p>CL（媒合專員）每週自動跟催工具 — 設定一次，Claude 每週自動盯進度、發 Slack 提醒你</p>
+</header>
+
+<main>
+
+<section>
+  <h2>這是什麼？</h2>
+  <p>vocus 內部媒合進度表裡有一大堆訂單，每個人都要自己盯著看有沒有卡關。設定好這個排程之後，Claude 每週會自動：</p>
+  <ol>
+    <li>讀取媒合進度表的 Raw data</li>
+    <li>篩選出「<strong>你負責</strong>」的訂單（依 S 欄「媒合負責人」比對你的名字）</li>
+    <li>挑出 <strong>逾期未交稿</strong>、<strong>曝光已逾期</strong>、<strong>尚未回傳數據</strong> 三種需要跟催的訂單</li>
+    <li>整理成表格，發 Slack 訊息通知你</li>
+  </ol>
+</section>
+
+<section>
+  <h2><span class="num">1</span>填入你的資料</h2>
+  <p>下面兩個欄位填好後，第 3 步的 Prompt 會自動帶入你的資料。</p>
+  <div class="field">
+    <label>你的名字 <span class="hint">— 要跟進度表 S 欄「媒合負責人」寫的一模一樣，例如 Lucy</span></label>
+    <input type="text" id="in-name" placeholder="例如：Lucy" autocomplete="off">
+  </div>
+  <div class="field">
+    <label>Slack 使用者 ID 或頻道 ID <span class="hint">— 在 Slack 個人資料頁 →「⋯」→「複製成員 ID」，通常長這樣：U0XXXXXXX</span></label>
+    <input type="text" id="in-channel" placeholder="例如：U0XXXXXXX" autocomplete="off">
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">2</span>打開 Cowork，請 Claude 幫你排程</h2>
+  <p>直接說「<strong>幫我排程</strong>」（或使用 <code class="inline">schedule</code> skill），並告訴 Claude 你想要的執行頻率，例如：</p>
+  <ul>
+    <li>「每週一早上 11:00」（cron：<code class="inline">0 11 * * 1</code>）</li>
+    <li>想改成平日每天中午：<code class="inline">0 12 * * 1-5</code></li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="num">3</span>複製 Prompt 貼給 Claude</h2>
+  <p>按右上角「複製」，把整段 Prompt 貼到排程任務的內容裡。<span id="fill-status"></span></p>
+  <div class="prompt-wrap">
+    <div class="prompt-box" id="prompt-view"><button class="copy-btn" id="copy-btn">📋 複製</button><span id="prompt-text"></span></div>
+  </div>
+  <p class="warn" style="margin-top:1rem;">⚠️ 設定完成後，建議先手動按一次「<strong>Run now</strong>」，讓 Claude 完成一次瀏覽器與 Slack 的權限授權，之後排程就會自動執行，不會卡在權限確認上。</p>
+</section>
+
+<section>
+  <h2>逾期原因判斷規則（曝光已逾期用）</h2>
+  <p>依 N 欄「審稿狀態」與 F 欄「商家要求審稿」判斷：</p>
+  <table>
+    <thead><tr><th>N欄（審稿狀態）</th><th>F欄（商家要求審稿）</th><th>顯示的逾期原因</th></tr></thead>
+    <tbody>
+      <tr><td>店家審稿</td><td>—</td><td>店家尚未審完</td></tr>
+      <tr><td>我方審稿</td><td>TRUE</td><td>尚未提交給店家審稿</td></tr>
+      <tr><td>我方審稿</td><td>不為 TRUE</td><td>我方尚未審完</td></tr>
+      <tr><td>店家審完 / 審稿完成</td><td>—</td><td>創作者尚未曝光</td></tr>
+      <tr><td>創作者改稿</td><td>—</td><td>創作者需改稿</td></tr>
+      <tr><td>其他（空白 / 供稿完成）</td><td>—</td><td>原因未知（審稿狀態：實際值）</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>欄位參考（0-based index）</h2>
+  <p class="warn">⚠️ 這是 2026/07/05 核對過的欄位對照。試算表擁有者可能會新增/調整欄位順序，若篩選結果異常（例如篩不到自己的資料），請重新核對一次欄位再使用，不要照抄舊的對照表。</p>
+  <table>
+    <thead><tr><th>欄位</th><th>內容</th></tr></thead>
+    <tbody>
+      <tr><td>A(0)</td><td>訂單編號</td></tr>
+      <tr><td>B(1)</td><td>訂單狀態</td></tr>
+      <tr><td>C(2)</td><td>商家名稱</td></tr>
+      <tr><td>F(5)</td><td>商家要求審稿（boolean）</td></tr>
+      <tr><td>G(6)</td><td>創作者編號</td></tr>
+      <tr><td>H(7)</td><td>創作者暱稱</td></tr>
+      <tr><td>I(8)</td><td>IG帳號</td></tr>
+      <tr><td>J(9)</td><td>體驗日期</td></tr>
+      <tr><td>K(10)</td><td>體驗時間</td></tr>
+      <tr><td>L(11)</td><td>體驗人數</td></tr>
+      <tr><td>M(12)</td><td>供稿截止日</td></tr>
+      <tr><td>N(13)</td><td>審稿狀態</td></tr>
+      <tr><td>O(14)</td><td>預計曝光貼文日</td></tr>
+      <tr><td>P(15)</td><td>貼文連結（有值=已曝光）</td></tr>
+      <tr><td>Q(16)</td><td>預計數據回傳日</td></tr>
+      <tr><td>R(17)</td><td>數據回傳（null 或「已回傳」）</td></tr>
+      <tr><td>S(18)</td><td>媒合負責人</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>版本紀錄</h2>
+  <ul>
+    <li><strong>2026/07/05</strong>：初版為每日（週一到週五 12:00）摘要，含「今日體驗」「曝光已逾期」「逾期未交稿」三類。</li>
+    <li><strong>2026/07/05（更新）</strong>：改為每週一 11:00 執行；通知類別改為「逾期未交稿」「曝光已逾期」「尚未回傳數據」三類，並調整判斷邏輯避免「逾期未交稿」與「曝光已逾期」重複列出同一筆訂單。</li>
+  </ul>
+</section>
+
+<footer>
+  vocus 媒合 AI 小工具 · <a href="vocus-weekly-reminder-template.md">下載原始 Markdown 範本</a>
+</footer>
+
+</main>
+
+<script type="text/plain" id="prompt-src">
+你是 vocus 行銷媒合專員（{{YOUR_NAME}}）的自動助理。每週執行以下工作：
+
+## 步驟一：讀取 Raw data
+
+先用 Claude in Chrome 的 tabs_context_mcp（createIfEmpty:true）取得 tabId，只開一個分頁，然後導覽到：
+https://docs.google.com/spreadsheets/d/1WFwJ8wlcc6p95axJEukdbLNZdkcodkFPBlXjkfw1_h4/edit
+
+等頁面載入後，用 javascript_tool 點擊 Raw data 分頁（id=":1e"）：
+document.getElementById(':1e').click()
+
+確認切換成功後，再執行以下 fetch 取得資料（使用 gid=0）。注意：JavaScript 必須用 top-level await 的寫法（不要包成 async IIFE 再回傳 Promise，否則工具會回傳空物件），最後一行直接是要回傳的值：
+
+const r = await fetch('https://docs.google.com/spreadsheets/d/1WFwJ8wlcc6p95axJEukdbLNZdkcodkFPBlXjkfw1_h4/gviz/tq?tqx=out:json&gid=0');
+const text = await r.text();
+const json = JSON.parse(text.replace("/*O_o*/\ngoogle.visualization.Query.setResponse(","").replace(");",""));
+const rows = json.table.rows;
+const getVal = (row, idx) => row.c[idx] && row.c[idx].v !== null ? row.c[idx].v : null;
+const now = new Date();
+const myRows = rows.filter(row => getVal(row, 18) === "{{YOUR_NAME}}");
+function parseDate(s) { if (!s || !s.startsWith('Date(')) return null; const p = s.replace('Date(','').replace(')','').split(',').map(Number); return new Date(p[0], p[1], p[2]); }
+const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+const pickBase = (r) => ({ order_id: getVal(r,0), brand: getVal(r,2), creator_id: getVal(r,6), nick: getVal(r,7), ig: getVal(r,8) });
+const getReason = (r) => { const status = getVal(r, 13); const storeReviewNeeded = getVal(r, 5); if (status === '店家審稿') return '店家尚未審完'; if (status === '我方審稿') return storeReviewNeeded === true ? '尚未提交給店家審稿' : '我方尚未審完'; if (status === '店家審完' || status === '審稿完成') return '創作者尚未曝光'; if (status === '創作者改稿') return '創作者需改稿'; return '原因未知（審稿狀態：' + (status || '無') + '）'; };
+const missingDraft = myRows.filter(r => { const status = getVal(r,1); const expectedPost = parseDate(getVal(r,14)); return status === '已體驗/供稿中' && expectedPost && expectedPost < todayDate; }).map(r => ({ ...pickBase(r), expected_date: getVal(r,14) }));
+const exposureOverdue = myRows.filter(r => { const status = getVal(r,1); const d = parseDate(getVal(r,14)); const link = getVal(r,15); return status !== '已體驗/供稿中' && d && d < todayDate && !link; }).map(r => ({ ...pickBase(r), expected_date: getVal(r,14), reason: getReason(r) }));
+const dataNotReturned = myRows.filter(r => { const status = getVal(r,1); const expectedData = parseDate(getVal(r,16)); const dataReturned = getVal(r,17); return status === '已曝光' && expectedData && expectedData < todayDate && dataReturned !== '已回傳'; }).map(r => ({ ...pickBase(r), expected_data_date: getVal(r,16) }));
+JSON.stringify({ missingDraft, exposureOverdue, dataNotReturned });
+
+若資料筆數較多導致 JSON 字串在單次 javascript_tool 呼叫中被截斷，請改用 window 暫存變數（如 window.__exposureOverdue = ...）分批用 JSON.stringify(window.__exposureOverdue.slice(a,b)) 取出，確保每一筆資料都完整取得，不可遺漏或憑印象填寫。
+
+欄位說明（0-based index，若欄位有異動請重新核對一次再執行，詳見下方「欄位參考」章節）：
+A(0) 訂單編號 / B(1) 訂單狀態 / C(2) 商家名稱 / F(5) 商家要求審稿 / G(6) 創作者編號 / H(7) 創作者暱稱 / I(8) IG帳號 / M(12) 供稿截止日 / N(13) 審稿狀態 / O(14) 預計曝光貼文日 / P(15) 貼文連結 / Q(16) 預計數據回傳日 / R(17) 數據回傳 / S(18) 媒合負責人
+
+日期格式為 Google Sheets Date 物件，例如 "Date(2026,5,4)" 代表 2026年6月4日（月份0-based），轉換為可讀格式時月份需 +1。
+
+## 步驟二：三個通知類別
+
+1. **逾期未交稿**：B欄為「已體驗/供稿中」，且今天已超過 O欄（預計曝光貼文日）。
+2. **曝光已逾期**：今天已超過 O欄且 P欄為空，但排除 B欄為「已體驗/供稿中」的訂單（避免跟項目1重複）。逾期原因依 N欄與 F欄判斷（見下方規則），輸出時只顯示描述文字，不加編號前綴。
+3. **尚未回傳數據**：B欄為「已曝光」，且今天已超過 Q欄（預計數據回傳日），且 R欄不是「已回傳」。
+
+## 步驟三：日期轉換
+
+"Date(YYYY,M,D)" → 月份 +1，例如 Date(2026,5,3) → 2026/06/03。
+
+## 步驟四：傳送 Slack 通知
+
+使用工具 mcp__c9364076-1525-43cd-8fdd-7e12b1acb0f4__slack_send_message，channel_id = {{SLACK_CHANNEL_ID}}
+
+訊息格式：
+
+📊 *每週創作者摘要 — YYYY/MM/DD*
+
+*1️⃣ 逾期未交稿（N組）*
+| 訂單編號 | 商家名稱 | 創作者編號 | 創作者暱稱 | IG帳號 | 預計曝光日 |
+|---|---|---|---|---|---|
+（無則顯示：無逾期未交稿）
+
+---
+
+*2️⃣ 曝光已逾期（N組）*
+| 訂單編號 | 商家名稱 | 創作者編號 | 創作者暱稱 | IG帳號 | 應曝光日 | 逾期原因 |
+|---|---|---|---|---|---|---|
+（無則顯示：無曝光已逾期）
+
+---
+
+*3️⃣ 尚未回傳數據（N組）*
+| 訂單編號 | 商家名稱 | 創作者編號 | 創作者暱稱 | IG帳號 | 預計回傳日 |
+|---|---|---|---|---|---|
+（無則顯示：無尚未回傳數據）
+
+## 步驟五：關閉分頁
+
+Slack 訊息成功送出後，用 Claude in Chrome 的 tabs_close_mcp 把步驟一開啟的分頁關閉。
+</script>
+
+<script>
+(function () {
+  var raw = document.getElementById('prompt-src').textContent.trim();
+  var view = document.getElementById('prompt-text');
+  var nameIn = document.getElementById('in-name');
+  var chIn = document.getElementById('in-channel');
+  var status = document.getElementById('fill-status');
+  var btn = document.getElementById('copy-btn');
+
+  function current() {
+    var name = nameIn.value.trim();
+    var ch = chIn.value.trim();
+    var out = raw;
+    if (name) out = out.split('{{YOUR_NAME}}').join(name);
+    if (ch) out = out.split('{{SLACK_CHANNEL_ID}}').join(ch);
+    return { text: out, complete: !!(name && ch) };
+  }
+
+  function render() {
+    var c = current();
+    view.textContent = c.text;
+    status.innerHTML = c.complete
+      ? '<span class="ok-pill">✅ 已帶入你的資料</span>'
+      : '<span class="ok-pill" style="background:#fff8e6;color:#9a6b00;">還沒填第 1 步的話，複製後要自己替換 {{YOUR_NAME}} 和 {{SLACK_CHANNEL_ID}}</span>';
+  }
+
+  nameIn.addEventListener('input', render);
+  chIn.addEventListener('input', render);
+
+  btn.addEventListener('click', function () {
+    navigator.clipboard.writeText(current().text).then(function () {
+      btn.textContent = '✅ 已複製';
+      btn.classList.add('done');
+      setTimeout(function () {
+        btn.textContent = '📋 複製';
+        btn.classList.remove('done');
+      }, 2000);
+    });
+  });
+
+  render();
+})();
+</script>
+
+</body>
+</html>
